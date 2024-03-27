@@ -1,5 +1,10 @@
 pipeline {
     agent any
+    
+    environment {
+        registry = "chahatsagarmain/jenkins_pipeline"
+        registryCredential = "dockerCredentials"
+    }
 
     stages {
         stage('checkout') {
@@ -8,11 +13,49 @@ pipeline {
             }
         }
         
-        stage('SonarQube Analysis') {
-            def scannerHome = tool 'sonar-scanner';
-            withSonarQubeEnv() {
-                sh "${scannerHome}/bin/sonar-scanner"
+        stage('SonarQube analysis') {
+            environment {
+                scannerHome = tool 'sonar-qube'
+            }
+            steps {
+                withSonarQubeEnv('sonar-scanner') {
+                    sh '''
+                    ${scannerHome}/bin/sonar-scanner 
+                    '''
+                }
+            }
+            
+        }
+        stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
             }
         }
+        
+        stage("build stage"){
+            steps{
+                script{
+                    echo "Docker building stage"
+                    
+                    dockerImage = docker.build("${registry}")
+                    
+                }
+            }
+        }
+        
+        stage("push Image"){
+            steps{
+                script{
+                    echo "pushing image"
+                    
+                    docker.withRegistry( "https://index.docker.io/v1/" , "${registryCredential}" ) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+       
     }
 }
