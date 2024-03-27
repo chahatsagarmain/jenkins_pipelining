@@ -1,0 +1,18 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'main', credentialsId: '7851be4c-b419-4021-9d10-fad21d4e690d', url: 'https://github.com/chahatsagarmain/jenkins_pipelining'
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+            def scannerHome = tool 'sonar-scanner';
+            withSonarQubeEnv() {
+                sh "${scannerHome}/bin/sonar-scanner"
+            }
+        }
+    }
+}
